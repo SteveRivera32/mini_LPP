@@ -1,0 +1,10 @@
+Funcion Suma(Entero a, Entero b): Entero
+Inicio
+    Retorne a + b
+Fin
+
+Inicio
+    Escriba Suma(379, 837)
+Fin
+
+

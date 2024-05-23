@@ -1,0 +1,46 @@
+Entero a, b, c
+
+// Funcion que calcula el maximo comun divisor
+Funcion gcd(Entero a, Entero b): Entero
+Inicio
+    Si b = 0 Entonces
+        Retorne a
+    Sino
+        Retorne gcd(b, a mod b)
+    Fin Si
+Fin
+
+Inicio
+    a <- 134
+    b <- 567
+    c <- gcd(a, b)
+    Escriba c
+    a <- 132
+    b <- 567
+    c <- gcd(a, b)
+    Escriba c
+    a <- 51492
+    b <- 20636
+    c <- gcd(a, b)
+    Escriba c
+    a <- 53316
+    b <- 33876
+    c <- gcd(a, b)
+    Escriba c
+    a <- 5416
+    b <- 9236
+    c <- gcd(a, b)
+    Escriba c
+    a <- 5416
+    b <- 9232
+    c <- gcd(a, b)
+    Escriba c
+    a <- 5406
+    b <- 9231
+    c <- gcd(a, b)
+    Escriba c
+    a <- 5395
+    b <- 9230
+    c <- gcd(a, b)
+    Escriba c
+Fin

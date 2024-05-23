@@ -1,0 +1,57 @@
+Arreglo [10] De Entero arr
+Entero i
+
+Funcion get_min(var Arreglo [10] de Entero arr, Entero start, Entero end): Entero
+Entero min, i
+Inicio
+    min <- start
+
+    Para i <- start Hasta end Haga
+        Si arr[min] > arr[i] Entonces
+            min <- i
+        Fin Si
+    Fin Para
+
+    Retorne min
+Fin
+
+Procedimiento printArray(var Arreglo [10] de Entero arr)
+Inicio
+    Para i <- 1 Hasta 10 Haga
+        Escriba arr[i]
+        Escriba ","
+    Fin Para
+Fin
+
+Procedimiento selection_sort(var Arreglo [10] de Entero arr, Entero start, Entero end)
+Entero pos, temp
+Entero i
+Inicio
+    Si start < end Entonces
+        pos <- get_min(arr, start, end)
+
+        Si pos <> start Entonces
+            temp <- arr[start]
+            arr[start] <- arr[pos]
+            arr[pos] <- temp
+        Fin Si
+        Llamar selection_sort(arr, start + 1, end)
+    Fin Si
+Fin
+
+Inicio
+    arr[1] <- 100
+    arr[2] <- 2
+    arr[3] <- 67
+    arr[4] <- 38
+    arr[5] <- 76
+    arr[6] <- 12
+    arr[7] <- 50
+    arr[8] <- 62
+    arr[9] <- 14
+    arr[10] <- 60
+
+    Llamar selection_sort(arr, 1, 10)
+
+    Llamar printArray(arr)
+Fin

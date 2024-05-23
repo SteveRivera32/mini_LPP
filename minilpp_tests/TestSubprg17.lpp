@@ -1,0 +1,16 @@
+Entero a, b
+
+Procedimiento Suma
+Inicio
+    Escriba a + b
+Fin
+
+Inicio
+    a <- 567
+    b <- 765
+    Llamar Suma
+    a <- 374
+    b <- 473
+    Llamar Suma
+Fin
+

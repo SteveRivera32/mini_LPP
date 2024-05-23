@@ -1,0 +1,6 @@
+Caracter x
+
+Inicio
+    x <- 'A'
+    Escriba x
+Fin

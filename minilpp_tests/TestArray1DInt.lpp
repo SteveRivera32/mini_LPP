@@ -1,0 +1,15 @@
+Arreglo [5] De Entero x
+
+Inicio
+    x[1] <- 354
+    x[2] <- 642
+    x[3] <- 197
+    x[4] <- 253
+    x[5] <- 938
+
+    Escriba x[1]
+    Escriba x[2]
+    Escriba x[3]
+    Escriba x[4]
+    Escriba x[5]
+Fin

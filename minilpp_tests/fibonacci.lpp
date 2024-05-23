@@ -1,0 +1,42 @@
+Entero f
+
+funcion fibonacci( entero n ):entero
+Entero i, j, k
+inicio
+	si (n=0) o (n=1) entonces
+		retorne 1
+	sino
+		retorne fibonacci(n-1) + fibonacci(n-2)
+	fin si
+fin
+
+inicio
+    f <- fibonacci(0)
+    Escriba f
+    f <- fibonacci(1)
+    Escriba f
+    f <- fibonacci(2)
+    Escriba f
+    f <- fibonacci(3)
+    Escriba f
+    f <- fibonacci(4)
+    Escriba f
+    f <- fibonacci(5)
+    Escriba f
+    f <- fibonacci(6)
+    Escriba f
+    f <- fibonacci(7)
+    Escriba f
+    f <- fibonacci(8)
+    Escriba f
+    f <- fibonacci(9)
+    Escriba f
+    f <- fibonacci(10)
+    Escriba f
+    f <- fibonacci(11)
+    Escriba f
+    f <- fibonacci(12)
+    Escriba f
+    f <- fibonacci(13)
+    Escriba f
+fin

@@ -1,0 +1,21 @@
+Arreglo [5] de Entero x
+
+Procedimiento ModificaArreglo(var Arreglo [5] de Entero a)
+Inicio
+    a[1] <- 354
+    a[2] <- 642
+    a[3] <- 197
+    a[4] <- 253
+    a[5] <- 938
+Fin
+
+Inicio
+    LLamar ModificaArreglo(x)
+    Escriba x[1]
+    Escriba x[2]
+    Escriba x[3]
+    Escriba x[4]
+    Escriba x[5]
+Fin
+
+

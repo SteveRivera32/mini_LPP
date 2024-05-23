@@ -1,0 +1,13 @@
+Entero c
+
+Procedimiento Suma(Entero a, Entero b, var Entero c)
+Inicio
+    c <- a + b
+Fin
+
+Inicio
+    Llamar Suma(379, 837, c)
+    Escriba c
+Fin
+
+

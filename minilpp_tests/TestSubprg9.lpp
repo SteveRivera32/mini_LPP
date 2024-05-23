@@ -1,0 +1,29 @@
+Arreglo [5] de Entero x
+
+Procedimiento NoModificaArreglo(Arreglo [5] de Entero a)
+Inicio
+    a[1] <- 354
+    a[3] <- 197
+    a[5] <- 938
+    Escriba a[1]
+    Escriba a[2]
+    Escriba a[3]
+    Escriba a[4]
+    Escriba a[5]
+Fin
+
+Inicio
+    x[1] <- 1159
+    x[2] <- 1117
+    x[3] <- 1624
+    x[4] <- 1035
+    x[5] <- 1303
+    LLamar NoModificaArreglo(x)
+    Escriba x[1]
+    Escriba x[2]
+    Escriba x[3]
+    Escriba x[4]
+    Escriba x[5]
+Fin
+
+

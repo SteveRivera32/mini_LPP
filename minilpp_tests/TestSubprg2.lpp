@@ -1,0 +1,10 @@
+Procedimiento Suma(Entero a, Entero b)
+Inicio
+    Escriba a + b
+Fin
+
+Inicio
+    Llamar Suma(379, 837)
+Fin
+
+

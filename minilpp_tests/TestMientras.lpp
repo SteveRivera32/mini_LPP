@@ -1,0 +1,9 @@
+Entero i
+
+Inicio
+    i <- 1
+    Mientras i <= 100 Haga
+        Escriba i
+        i <- i + 1
+    Fin Mientras
+Fin
