@@ -195,9 +195,19 @@ comp-expr: expr COMP_MENORQUE expr {  }
 if-statement: RES_SI comp-expr-list RES_ENTONCES statement-list else-block RES_FIN RES_SI {}
 ;
 
-else-block: RES_SINO RES_SI comp-expr-list RES_ENTONCES statement-list else-block {}
-      | RES_SINO statement-list {}
-      |
+else-block: | RES_SINO RES_SI comp-expr-list RES_ENTONCES statement-list-no-if else-block {}
+      | RES_SINO statement-list-no-if {}
+      | 
+;
+
+statement-list-no-if: RES_ESCRIBA expr { parser.addValue(std::get<std::string>($2)); }
+      | factor-identifier ASIGNACION expr { parser.setIdentValue(std::get<std::string>($1), std::get<std::string>($3)); }
+      | RES_MIENTRAS comp-expr-list RES_HAGA statement-list RES_FIN RES_MIENTRAS {}
+      | RES_PARA IDENTIFICADOR ASIGNACION expr RES_HASTA expr RES_HAGA statement-list RES_FIN RES_PARA {}
+      | RES_RETORNE expr {}
+      | RES_LLAMAR IDENTIFICADOR OPEN_PAR factor-list CLOSE_PAR {}
+      | RES_LLAMAR IDENTIFICADOR {}
+      | RES_LEA factor-identifier {}
 ;
 
 expr: expr OP_ADD term {  }
