@@ -6,6 +6,7 @@ int ExprParser::parse()
     return yyparse(*this);
 }
 
+/*
 std::string ExprParser::searchIdentValue(const std::string& cname) const
 {
     // Values taken from https://en.wikipedia.org/wiki/List_of_mathematical_constants
@@ -26,3 +27,4 @@ std::string ExprParser::searchIdentValue(const std::string& cname) const
         return it->second;
 
 }
+*/

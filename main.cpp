@@ -19,11 +19,13 @@ int main(int argc, char *argv[])
     ExprLexer lexer(in);
     ExprParser parser(lexer);
 
+    //static SymbolTable symb_tbl;
+
     try {
         parser.parse();
-        for (std::string value : parser.getValues()) {
-            std::cout << value << "\n";
-        }
+        // for (AstNode* value : parser.getValues()) {
+        //     std::cout << value->genCode(symb_tbl).code << "\n";
+        // }
 
     } catch(const std::runtime_error ex){
         std::cerr << ex.what() << "\n";   

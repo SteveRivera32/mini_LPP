@@ -26,10 +26,12 @@ void yyerror(const ExprParser& parser, const char *msg)
 #include <string>
 #include <variant>
 #include <typeinfo>
+#include "ExprAst.hpp"
 
 class ExprParser; // Forward declaration
 
-using ParserValueType = std::variant<std::string, double>;
+//using ParserValueType = std::variant<std::string, double>;
+using ParserValueType = AstNode *;
 
 #define YYSTYPE ParserValueType
 #define YYSTYPE_IS_DECLARED 1
@@ -105,10 +107,10 @@ using ParserValueType = std::variant<std::string, double>;
 
 %%
 
-input: program
+input: program {  }
 ;
 
-program: subtypes-section variable-section subprogram-decl RES_INICIO statement-list RES_FIN {}
+program: subtypes-section variable-section subprogram-decl RES_INICIO statement-list RES_FIN { parser.generateASM(new Program($5)); }
 ;
 
 subtypes-section: subtypes-section subtype-decl {}
@@ -146,7 +148,7 @@ variable-list: variable-list variable-decl {}
       | variable-decl {}
 ;
 
-variable-decl: type type-list { parser.addDeclaratedIdentifiers(std::get<std::string>($1)); }
+variable-decl: type type-list { }
 ;
 
 type: RES_ENTERO {}
@@ -156,20 +158,20 @@ type: RES_ENTERO {}
       | array-type {}
 ;
 
-array-type: RES_ARREGLO OPEN_BRACKET NUMERO CLOSE_BRACKET RES_DE type { parser.createArray(std::get<std::string>($6), std::to_string(std::get<double>($3))); }
+array-type: RES_ARREGLO OPEN_BRACKET NUMERO CLOSE_BRACKET RES_DE type {  }
 ;
 
-type-list: IDENTIFICADOR { parser.addTempValue(std::get<std::string>($1)); }
-      | type-list COMA IDENTIFICADOR { parser.addTempValue(std::get<std::string>($3)); }
+type-list: IDENTIFICADOR {  }
+      | type-list COMA IDENTIFICADOR {  }
 ;
 
-statement-list: statement-list statement {}
-      | statement {}
+statement-list: statement-list statement { $$ = new BlockStmt($1, $2); }
+      | statement { $$ = $1; }
 ;
 
-statement: RES_ESCRIBA expr { parser.addValue(std::get<std::string>($2)); }
-      | factor-identifier ASIGNACION expr { parser.setIdentValue(std::get<std::string>($1), std::get<std::string>($3)); }
-      | RES_MIENTRAS comp-expr-list RES_HAGA statement-list RES_FIN RES_MIENTRAS {}
+statement: RES_ESCRIBA expr { $$ = new PrintStmt($2); }
+      | factor-identifier ASIGNACION expr { $$ = new AssignStmt($1, $3); }
+      | RES_MIENTRAS comp-expr-list RES_HAGA statement-list RES_FIN RES_MIENTRAS { $$ = new WhileStmt($2, $4);}
       | RES_PARA IDENTIFICADOR ASIGNACION expr RES_HASTA expr RES_HAGA statement-list RES_FIN RES_PARA {}
       | if-statement {}
       | RES_RETORNE expr {}
@@ -180,28 +182,33 @@ statement: RES_ESCRIBA expr { parser.addValue(std::get<std::string>($2)); }
 
 comp-expr-list: OPEN_PAR comp-expr-list CLOSE_PAR RES_Y OPEN_PAR comp-expr CLOSE_PAR { }
       | OPEN_PAR comp-expr-list CLOSE_PAR RES_O OPEN_PAR comp-expr CLOSE_PAR { }
-      | comp-expr { }
+      | comp-expr { $$ = $1; }
 ;
 
-comp-expr: expr COMP_MENORQUE expr {  }
-      | expr COMP_MAYORQUE expr {  }
-      | expr COMP_IGUALQUE expr {  }
-      | expr COMP_DISTINTOQUE expr {  }
-      | expr COMP_MENORIGUALQUE expr {  }
-      | expr COMP_MAYORIGUALQUE expr {  }
+comp-expr: expr COMP_MENORQUE expr { $$ = new LessThanExpr($1, $3); }
+      | expr COMP_MAYORQUE expr { $$ = new GreaterThanExpr($1, $3); }
+      | expr COMP_IGUALQUE expr { $$ = new EqualThanExpr($1, $3);}
+      | expr COMP_DISTINTOQUE expr { $$ = new NotEqualThanExpr($1, $3);}
+      | expr COMP_MENORIGUALQUE expr { $$ = new LessOrEqualThanExpr($1, $3);}
+      | expr COMP_MAYORIGUALQUE expr { $$ = new GreaterOrEqualThanExpr($1, $3);}
       | RES_NO comp-expr {  }
 ;
 
-if-statement: RES_SI comp-expr-list RES_ENTONCES statement-list else-block RES_FIN RES_SI {}
+if-statement: RES_SI comp-expr-list RES_ENTONCES statement-list else-block RES_FIN RES_SI { $$ = new IfStmt($2, $4, $5); }
 ;
 
-else-block: | RES_SINO RES_SI comp-expr-list RES_ENTONCES statement-list-no-if else-block {}
-      | RES_SINO statement-list-no-if {}
-      | 
+else-block: | RES_SINO RES_SI comp-expr-list RES_ENTONCES statement-list else-block { $$ = new IfStmt($3, $5, $6); }
+      | RES_SINO RES_SI comp-expr-list RES_ENTONCES statement-list-no-if else-block { $$ = new IfStmt($3, $5, $6); }
+      | RES_SINO statement-list-no-if { $$ = $2; }
+      //| RES_SINO statement-list {}
 ;
 
-statement-list-no-if: RES_ESCRIBA expr { parser.addValue(std::get<std::string>($2)); }
-      | factor-identifier ASIGNACION expr { parser.setIdentValue(std::get<std::string>($1), std::get<std::string>($3)); }
+statement-list-no-if: statement-list-no-if statement-no-if { $$ = new BlockStmt($1, $2); }
+      | statement-no-if { $$ = $1; }
+;
+
+statement-no-if: RES_ESCRIBA expr { $$ = new PrintStmt($2); }
+      | factor-identifier ASIGNACION expr { $$ = new AssignStmt($1, $3); }
       | RES_MIENTRAS comp-expr-list RES_HAGA statement-list RES_FIN RES_MIENTRAS {}
       | RES_PARA IDENTIFICADOR ASIGNACION expr RES_HASTA expr RES_HAGA statement-list RES_FIN RES_PARA {}
       | RES_RETORNE expr {}
@@ -210,32 +217,31 @@ statement-list-no-if: RES_ESCRIBA expr { parser.addValue(std::get<std::string>($
       | RES_LEA factor-identifier {}
 ;
 
-expr: expr OP_ADD term {  }
-      //expr OP_ADD term { $$ = std::to_string(std::stod(std::get<std::string>($1)) + std::stod(std::get<std::string>($3))); }
-      | expr OP_SUB term { $$ = std::stod(std::get<std::string>($1)) - std::stod(std::get<std::string>($3)); }
-      | term { $$ = std::get<std::string>($1); }
+expr: expr OP_ADD term { $$ = new AddExpr($1, $3); }
+      | expr OP_SUB term { $$ = new SubExpr($1, $3); }
+      | term { $$ = $1; }
 ;
 
-term: term OP_MULT factor { $$ = std::stod(std::get<std::string>($1)) * std::stod(std::get<std::string>($3)); }
-      | term POTENCIA factor {}
+term: term OP_MULT factor { $$ = new MultExpr($1, $3); }
+      | term POTENCIA factor { $$ = new PowExpr($1, $3); }
       | term RES_Y factor { }
       | term RES_O factor { }
       | term RES_MOD factor { }
-      | term RES_DIV factor { }
-      | factor { $$ = std::get<std::string>($1); }
+      | term RES_DIV factor { $$ = new DivExpr($1, $3); }
+      | factor { $$ = $1; }
 ;
 
-factor: OPEN_PAR expr CLOSE_PAR { $$ = std::get<std::string>($2); }
-      | NUMERO { $$ = std::to_string(std::get<double>($1)); }
-      | factor-identifier { $$ = parser.searchIdentValue(std::get<std::string>($1)); }
-      | CADENA { $$ = std::get<std::string>($1); }
-      | bool-constant { $$ = std::get<std::string>($1); }
-      | CARACTER { $$ = std::get<std::string>($1); }
+factor: OPEN_PAR expr CLOSE_PAR { $$ = $2; }
+      | NUMERO { $$ = $1; }
+      | factor-identifier { $$ = $1; }
+      | CADENA { $$ = $1; }
+      | bool-constant { $$ = $1; }
+      | CARACTER { $$ = $1; }
       | factor-identifier OPEN_PAR factor-list CLOSE_PAR { }
       | factor-identifier OPEN_PAR CLOSE_PAR { }
 ;
 
-factor-identifier: IDENTIFICADOR { $$ = std::get<std::string>($1); }
+factor-identifier: IDENTIFICADOR { $$ = $1; }
       | IDENTIFICADOR OPEN_BRACKET expr CLOSE_BRACKET { }
 ;
 
@@ -243,6 +249,6 @@ factor-list: factor-list COMA expr { }
       | expr { }
 ;
 
-bool-constant: RES_VERDADERO { $$ = std::get<std::string>($1); }
-      | RES_FALSO { $$ = std::get<std::string>($1); }
+bool-constant: RES_VERDADERO { $$ = $1; }
+      | RES_FALSO { $$ = $1; }
 ;

@@ -86,7 +86,7 @@ Token ExprLexer::searchReservedWord(std::string word) {
         {"escribir", Token::RES_ESCRIBIR},
         {"verdadero", Token::RES_VERDADERO},
         {"falso", Token::RES_FALSO},
-        {"hasta", Token::RES_HASTA}
+        {"hasta", Token::RES_HASTA},
     };
 
     auto it = reserverWords.find(lowerWord);

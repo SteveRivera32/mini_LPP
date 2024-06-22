@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <algorithm>
+#include <fstream>
 
 class ExprParser {
 public:
@@ -16,8 +17,25 @@ public:
 
     int parse();
 
-    void addValue(std::string value){
-        printValues.push_back(value);
+    void generateASM(AstNode* value){
+        SymbolTable symb_tbl;
+        std::ofstream outFile("../asm.txt");
+
+        if (outFile.is_open()) {
+            outFile << value->genCode(symb_tbl).code;
+
+            // Cerrar el archivo
+            outFile.close();
+        } 
+    }
+    
+    ExprLexer& getLexer() const {
+        return lexer;
+    }
+
+    /*
+    void addValue(AstNode* value){
+        values.push_back(value);
     }
 
     void addDeclaratedIdentifiers(std::string type){
@@ -35,14 +53,10 @@ public:
         tempArrayType = "";
     }
 
-    std::vector<std::string> getValues(){
-        return printValues;
+    std::vector<AstNode*> getValues(){
+        return values;
     }
-
-    ExprLexer& getLexer() const {
-        return lexer;
-    }
-
+    
     std::string searchIdentValue(const std::string& cname) const;
 
     void setIdentValue(std::string& ident, std::string value){
@@ -65,12 +79,14 @@ public:
             tempVector.push_back(value);
         }
     }
+    */
 
 private:
     ExprLexer& lexer;
-    std::vector<std::string> printValues, tempVector;
-    std::unordered_map<std::string, std::string> identValues, declaratedIdentifiers;
-    std::string tempArraySize = "", tempArrayType = "";
+    //std::vector<AstNode*> values;
+    //std::vector<std::string> tempVector;
+    //std::unordered_map<std::string, std::string> identValues, declaratedIdentifiers;
+    //std::string tempArraySize = "", tempArrayType = "";
 };
 
 #endif

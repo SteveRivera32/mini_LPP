@@ -1,0 +1,695 @@
+%{
+#include <iostream>
+#include "ExprAst.hpp"
+#include <vector>
+
+std::string stringToLittleEndian(const std::string& str) {
+    // Asegurarse de que no intentamos acceder más allá de 4 bytes
+    size_t length = std::min(str.length(), static_cast<size_t>(4));
+
+    // Inicializar el resultado como uint32_t
+    std::uint32_t result = 0;
+
+    // Construir el resultado little-endian
+    for (size_t i = 0; i < length; ++i) {
+        result |= static_cast<std::uint32_t>(str[i]) << (i * 8);
+    }
+
+    // Convertir el resultado a una cadena hexadecimal
+    std::stringstream ss;
+    ss << "0x" << std::hex << std::setw(length * 2) << std::setfill('0') << result;
+
+    return ss.str();
+}
+
+struct Labels {
+    std::string label1;
+    std::string label2;
+};
+
+int control = 1;
+Labels generateLabels(std::string nodeType){
+    std::string label1, label2;
+
+    if(nodeType == "ifNode"){
+        label1 = "else_if" + std::to_string(control);
+        label2 = "end_if" + std::to_string(control);
+    }else if(nodeType == "whileNode"){
+        label1 = "while" + std::to_string(control);
+        label2 = "end_while" + std::to_string(control);
+    }else{
+        label1 = "label" + std::to_string(control);
+        label2 = "end_label" + std::to_string(control);
+    }
+
+    control++;
+    return {label1, label2};
+}
+%}
+
+%decls %{
+#include <string>
+#include <unordered_map>
+#include <variant>
+#include <stdexcept>
+#include <sstream>
+#include <iomanip>
+
+struct Output {
+    std::string code;
+    std::string place;
+    std::string nodeType;
+};
+
+using stdstring = std::string;
+using Value = std::variant<bool, int, std::string>;
+using SymbolTable = std::unordered_map<std::string, Value>;
+
+%}
+
+%option lang = "C++"
+
+%node AstNode %abstract %typedef
+
+%node Expr AstNode %abstract
+%node Stmt AstNode %abstract
+
+%node Program AstNode = {
+    AstNode *stmts;
+}
+
+%node BlockStmt Stmt = {
+    AstNode *stmt1;
+    AstNode *stmt2;
+}
+
+%node AssignStmt Stmt = {
+    AstNode *variable;
+    AstNode *value;
+}
+
+%node PrintStmt Stmt = {
+    AstNode *expr;
+}
+
+%node IfStmt Stmt = {
+    AstNode *cond;
+    AstNode *stmt1;
+    AstNode *stmt2;
+}
+
+%node WhileStmt Stmt = {
+    AstNode *cond;
+    AstNode *stmt;
+}
+
+%node BinaryExpr AstNode %abstract = {
+    AstNode *expr1;
+    AstNode *expr2;
+}
+
+%node AddExpr BinaryExpr
+%node SubExpr BinaryExpr
+%node MultExpr BinaryExpr
+%node PowExpr BinaryExpr
+%node DivExpr BinaryExpr
+%node LessThanExpr BinaryExpr
+%node GreaterThanExpr BinaryExpr
+%node EqualThanExpr BinaryExpr
+%node NotEqualThanExpr BinaryExpr
+%node LessOrEqualThanExpr BinaryExpr
+%node GreaterOrEqualThanExpr BinaryExpr
+
+%node NumExpr Expr = {
+    int value;
+}
+
+%node IdentExpr Expr = {
+    stdstring id;
+}
+
+%node StringExpr Expr = {
+    stdstring text;
+}
+
+%node CharExpr Expr = {
+    stdstring caracter;
+}
+
+%node BoolExpr Expr = {
+    bool value;
+}
+
+%operation %virtual Output genCode(AstNode *this, SymbolTable& symb_tbl)
+%operation %virtual Value eval(AstNode *this, SymbolTable& symb_tbl)
+%operation %virtual stdstring toString(AstNode *this)
+
+eval(Program){
+    return 0;
+}
+
+toString(Program){
+    return "";
+}
+
+genCode(Program){
+    stdstring code = stmts->genCode(symb_tbl).code;
+
+    return {code,"", "program"};
+}
+
+toString(BlockStmt){
+    return "";
+}
+
+eval(BlockStmt){
+    return 0;
+}
+
+genCode(BlockStmt){
+    Output s1 = stmt1->genCode(symb_tbl);
+    Output s2 = stmt2->genCode(symb_tbl);
+
+    stdstring code = s1.code + "\n" + s2.code;
+
+    return {code, "", "blockstmt"};
+}
+
+toString(AssignStmt){
+    return "";
+}
+
+eval(AssignStmt){
+    return 0;
+}
+
+genCode(AssignStmt){
+    stdstring v1 = variable->toString();    
+    Value v2 = value->eval(symb_tbl);
+    Output s1 = value->genCode(symb_tbl);
+
+    symb_tbl[v1] = v2;
+
+    if(s1.nodeType == "numexpr" || s1.nodeType == "identexpr" || s1.nodeType == "charexpr"){
+        return {"","", "assignstmt"};
+    }
+
+    return {s1.code, s1.place, "assignstmt"};
+}
+
+toString(PrintStmt){
+    return "";
+}
+
+eval(PrintStmt){
+    return 0;
+}
+
+genCode(PrintStmt){
+    Output s1 = expr->genCode(symb_tbl);
+    stdstring code;
+    
+    //revisar si necesita imprimir un int o string dependiendo del place
+    if(s1.nodeType == "stringexpr"){
+        code = s1.code + "\n"
+                    + "; Imprimir texto\n"
+                    + "mov eax, 4" + "\n"
+                    + "lea ebx, " + s1.place + "\n"
+                    + "int 0x80" + "\n";
+    }else if(s1.nodeType == "numexpr"){
+        code = s1.code + "\n"
+                    + "; Imprimir numero\n"
+                    + "mov eax, 1" + "\n"
+                    + "mov ebx, " + s1.place + "\n"
+                    + "int 0x80" + "\n";
+    }
+    
+    code += "\n; Imprimir salto de linea\nmov eax, 11\nmov ebx, 10\nint 0x80\n";
+
+    return {code,"", "printstmt"};
+}
+
+eval(IfStmt){
+    return 0;
+}
+
+toString(IfStmt){
+    return "";
+}
+
+genCode(IfStmt){
+    Output s1 = cond->genCode(symb_tbl);
+    Output s2 = stmt1->genCode(symb_tbl);
+    Output s3 = stmt2->genCode(symb_tbl);
+
+    Labels labels = generateLabels("ifNode");
+
+    stdstring code = s1.code + labels.label1 + "\n"
+                    + s2.code
+                    + "jmp " + labels.label2 + "\n"
+                    + labels.label1 + ":" + "\n"
+                    + s3.code
+                    + labels.label2 + ":" + "\n";
+    
+    return {code,s2.place,"ifstmt"};
+}
+
+eval(WhileStmt){
+    return 0;
+}
+
+toString(WhileStmt){
+    return "";
+}
+
+genCode(WhileStmt){
+    Output s1 = cond->genCode(symb_tbl);
+    Output s2 = stmt->genCode(symb_tbl);
+
+    Labels labels = generateLabels("whileNode");
+
+    stdstring code = labels.label1 + ":\n"
+                    + s1.code + labels.label2 + "\n"
+                    + s2.code + "\n"
+                    + "jmp " + labels.label1 + "\n"
+                    + labels.label2 + ":\n";
+    
+    return {code,s2.place,"whilestmt"};
+}
+
+eval(NumExpr){
+    return value;
+}
+
+toString(NumExpr){
+    return std::to_string(value);
+}
+
+genCode(NumExpr){
+    stdstring code = "; Guardar " + std::to_string(value) + "\n"
+                        + "mov esi, " + std::to_string(value) + "\n";
+    return {code,"esi", "numexpr"};
+}
+
+eval(IdentExpr){
+    auto it = symb_tbl.find(id);
+
+    if (it != symb_tbl.end()){
+        return it->second;
+    }else{
+        throw std::runtime_error("Variable '" + id + "' has not been declared.");
+    }
+}
+
+toString(IdentExpr){
+    return id;
+}
+
+genCode(IdentExpr){
+    stdstring code = "; Guardar valor de " + id + "\n";
+    
+    auto it = symb_tbl.find(id);
+
+    if (it != symb_tbl.end()) {
+        Value value = it->second;
+        AstNode* node;
+        if(std::holds_alternative<int>(value)){
+            node = new NumExpr(std::get<int>(value));
+            return node->genCode(symb_tbl);
+
+        }else if(std::holds_alternative<std::string>(value)){
+            node = new StringExpr(std::get<std::string>(value));
+            return node->genCode(symb_tbl);
+        }else{
+            return {"","", "identexpr"};
+        }
+    }
+
+    code += "mov esi, 0\n";
+    return {code,"esi", "identexpr"};
+}
+
+eval(StringExpr){
+    return text;
+}
+
+toString(StringExpr){
+    return text;
+}
+
+genCode(StringExpr){
+    stdstring code = "; Guardar \"" + text + "\"\n" 
+                        + "mov esi, 0x10000000\nlea ebx, [esi+4]\n";
+    int offset = 0;
+
+    if(text.length() <= 4){
+        code += "mov dword [ebx], " + stringToLittleEndian(text) + "\n";
+        offset += 4;
+    }else{
+        for(offset = 0; offset < text.length(); offset += 4){
+            code += "mov dword [ebx+" + std::to_string(offset) + "], " + stringToLittleEndian(text.substr(offset,4)) + "    ; \"" + text.substr(offset,4) + "\"\n";
+        }
+    }
+    code += "mov byte [ebx+" + std::to_string(offset) + "], 0\n";
+
+    return {code,"[esi+4]", "stringexpr"};
+}
+
+eval(CharExpr){
+    return caracter;
+}
+
+toString(CharExpr){
+    return caracter;
+}
+
+genCode(CharExpr){
+    stdstring code = "; Guardar \'" + caracter + "\'\n" 
+                        + "mov esi, 0x10000000\nlea ebx, [esi+4]\n";
+
+    code += "mov dword [ebx], " + stringToLittleEndian(caracter) + "\n";
+    code += "mov byte [ebx+4], 0\n";
+
+    return {code,"[esi+4]", "charexpr"};
+}
+
+eval(BoolExpr){
+    return value;
+}
+
+toString(BoolExpr){
+    return value ? "true" : "false";
+}
+
+genCode(BoolExpr){
+    stdstring stringValue = value ? "true" : "false";
+    
+    stdstring code = "; Guardar \'" + stringValue + "\'\n" 
+                        + "mov esi, 0x10000000\nlea ebx, [esi+4]\n";
+
+    code += "mov dword [ebx], " + stringToLittleEndian(stringValue) + "\n";
+    code += "mov byte [ebx+4], 0\n";
+
+    return {code,"[esi+4]", "boolexpr"};
+}
+
+eval(AddExpr){
+    Value v1 = expr1->eval(symb_tbl);
+    Value v2 = expr2->eval(symb_tbl);
+
+    if(!std::holds_alternative<int>(v1) || !std::holds_alternative<int>(v2)) {
+        throw std::runtime_error("Operator + only aplicable to int.");
+    }
+
+    return std::get<int>(v1) + std::get<int>(v2);
+}
+
+toString(AddExpr){
+    return "";
+}
+
+genCode(AddExpr){
+    Output s1 = expr1->genCode(symb_tbl);
+    Output s2 = expr2->genCode(symb_tbl);
+
+    stdstring code = s1.code 
+                    + "mov edi, " + s1.place + "\n"
+                    + s2.code
+                    + "add edi, " + s2.place + "\n";
+
+    return {code,"edi","addexpr"};
+}
+
+eval(SubExpr){
+    Value v1 = expr1->eval(symb_tbl);
+    Value v2 = expr2->eval(symb_tbl);
+
+    if(!std::holds_alternative<int>(v1) || !std::holds_alternative<int>(v2)) {
+        throw std::runtime_error("Operator - only aplicable to int.");
+    }
+
+    return std::get<int>(v1) - std::get<int>(v2);
+}
+
+toString(SubExpr){
+    return "";
+}
+
+genCode(SubExpr){
+    Output s1 = expr1->genCode(symb_tbl);
+    Output s2 = expr2->genCode(symb_tbl);
+
+    stdstring code = s1.code 
+                    + "mov edi, " + s1.place + "\n"
+                    + s2.code
+                    + "sub edi, " + s2.place + "\n";
+
+    return {code,"edi","subexpr"};
+}
+
+eval(MultExpr){
+    Value v1 = expr1->eval(symb_tbl);
+    Value v2 = expr2->eval(symb_tbl);
+
+    if(!std::holds_alternative<int>(v1) || !std::holds_alternative<int>(v2)) {
+        throw std::runtime_error("Operator * only aplicable to int.");
+    }
+
+    return std::get<int>(v1) * std::get<int>(v2);
+}
+
+toString(MultExpr){
+    return "";
+}
+
+genCode(MultExpr){
+    Output s1 = expr1->genCode(symb_tbl);
+    Output s2 = expr2->genCode(symb_tbl);
+
+    stdstring code = s1.code 
+                    + "mov eax, " + s1.place + "\n"
+                    + s2.code
+                    + "mul " + s2.place + "\n";
+
+    return {code,"eax","multexpr"};
+}
+
+eval(PowExpr){
+    Value v1 = expr1->eval(symb_tbl);
+    Value v2 = expr2->eval(symb_tbl);
+
+    if(!std::holds_alternative<int>(v1) || !std::holds_alternative<int>(v2)) {
+        throw std::runtime_error("Operator pow only aplicable to int.");
+    }
+
+    int result = std::get<int>(v1);
+    for(int i = 1; i < std::get<int>(v2); i++){
+        result *= std::get<int>(v1);
+    }
+
+    return result;
+}
+
+toString(PowExpr){
+    return "";
+}
+
+genCode(PowExpr){
+    Output s1 = expr1->genCode(symb_tbl);
+    Output s2 = expr2->genCode(symb_tbl);
+    Value v1 = expr2->eval(symb_tbl);
+
+    stdstring code = s1.code 
+                    + "mov eax, " + s1.place + "\n"
+                    + s2.code;
+    
+    for(int i = 1; i < std::get<int>(v1); i++){
+        + "mul " + s2.place + "\n";
+    }
+
+    return {code,"eax","powexpr"};
+}
+
+eval(DivExpr){
+    Value v1 = expr1->eval(symb_tbl);
+    Value v2 = expr2->eval(symb_tbl);
+
+    if(!std::holds_alternative<int>(v1) || !std::holds_alternative<int>(v2)) {
+        throw std::runtime_error("Operator div only aplicable to int.");
+    }
+
+    return std::get<int>(v1) / std::get<int>(v2);
+}
+
+toString(DivExpr){
+    return "";
+}
+
+genCode(DivExpr){
+    Output s1 = expr1->genCode(symb_tbl);
+    Output s2 = expr2->genCode(symb_tbl);
+
+    stdstring code = s1.code 
+                    + "mov eax, " + s1.place + "\n"
+                    + s2.code
+                    + "cdq\n"
+                    + "div " + s2.place + "\n";
+
+    return {code,"eax","divexpr"};
+}
+
+eval(LessThanExpr){
+    Value v1 = expr1->eval(symb_tbl);
+    Value v2 = expr2->eval(symb_tbl);
+
+    if(!std::holds_alternative<int>(v1) || !std::holds_alternative<int>(v2)) {
+        throw std::runtime_error("Operator < only aplicable to int.");
+    }
+
+    return std::get<int>(v1) < std::get<int>(v2);
+}
+
+toString(LessThanExpr){
+    return "";
+}
+
+genCode(LessThanExpr){
+    Value v1 = expr1->eval(symb_tbl);
+    Value v2 = expr2->eval(symb_tbl);
+
+    stdstring code = "mov esi, " + std::to_string(std::get<int>(v1)) + "\n"
+                    + "cmp esi, " + std::to_string(std::get<int>(v2)) + "\n"
+                    + "jge ";
+
+    return {code, "", "lessthanexpr"};
+}
+
+eval(GreaterThanExpr){
+    Value v1 = expr1->eval(symb_tbl);
+    Value v2 = expr2->eval(symb_tbl);
+
+    if(!std::holds_alternative<int>(v1) || !std::holds_alternative<int>(v2)) {
+        throw std::runtime_error("Operator > only aplicable to int.");
+    }
+
+    return std::get<int>(v1) > std::get<int>(v2);
+}
+
+toString(GreaterThanExpr){
+    return "";
+}
+
+genCode(GreaterThanExpr){
+    Value v1 = expr1->eval(symb_tbl);
+    Value v2 = expr2->eval(symb_tbl);
+
+    stdstring code = "mov esi, " + std::to_string(std::get<int>(v1)) + "\n"
+                    + "cmp esi, " + std::to_string(std::get<int>(v2)) + "\n"
+                    + "jle ";
+
+    return {code, "", "greaterthanexpr"};
+}
+
+eval(EqualThanExpr){
+    Value v1 = expr1->eval(symb_tbl);
+    Value v2 = expr2->eval(symb_tbl);
+
+    if(!std::holds_alternative<int>(v1) || !std::holds_alternative<int>(v2)) {
+        throw std::runtime_error("Operator = only aplicable to int.");
+    }
+
+    return std::get<int>(v1) = std::get<int>(v2);
+}
+
+toString(EqualThanExpr){
+    return "";
+}
+
+genCode(EqualThanExpr){
+    Value v1 = expr1->eval(symb_tbl);
+    Value v2 = expr2->eval(symb_tbl);
+
+    stdstring code = "mov esi, " + std::to_string(std::get<int>(v1)) + "\n"
+                    + "cmp esi, " + std::to_string(std::get<int>(v2)) + "\n"
+                    + "jne ";
+
+    return {code, "", "equalthanexpr"};
+}
+
+eval(NotEqualThanExpr){
+    Value v1 = expr1->eval(symb_tbl);
+    Value v2 = expr2->eval(symb_tbl);
+
+    if(!std::holds_alternative<int>(v1) || !std::holds_alternative<int>(v2)) {
+        throw std::runtime_error("Operator <> only aplicable to int.");
+    }
+
+    return std::get<int>(v1) != std::get<int>(v2);
+}
+
+toString(NotEqualThanExpr){
+    return "";
+}
+
+genCode(NotEqualThanExpr){
+    Value v1 = expr1->eval(symb_tbl);
+    Value v2 = expr2->eval(symb_tbl);
+
+    stdstring code = "mov esi, " + std::to_string(std::get<int>(v1)) + "\n"
+                    + "cmp esi, " + std::to_string(std::get<int>(v2)) + "\n"
+                    + "je ";
+
+    return {code, "", "notequalthanexpr"};
+}
+
+eval(LessOrEqualThanExpr){
+    Value v1 = expr1->eval(symb_tbl);
+    Value v2 = expr2->eval(symb_tbl);
+
+    if(!std::holds_alternative<int>(v1) || !std::holds_alternative<int>(v2)) {
+        throw std::runtime_error("Operator <= only aplicable to int.");
+    }
+
+    return std::get<int>(v1) <= std::get<int>(v2);
+}
+
+toString(LessOrEqualThanExpr){
+    return "";
+}
+
+genCode(LessOrEqualThanExpr){
+    Value v1 = expr1->eval(symb_tbl);
+    Value v2 = expr2->eval(symb_tbl);
+
+    stdstring code = "mov esi, " + std::to_string(std::get<int>(v1)) + "\n"
+                    + "cmp esi, " + std::to_string(std::get<int>(v2)) + "\n"
+                    + "jg ";
+
+    return {code, "", "lessorequalthanexpr"};
+}
+
+eval(GreaterOrEqualThanExpr){
+    Value v1 = expr1->eval(symb_tbl);
+    Value v2 = expr2->eval(symb_tbl);
+
+    if(!std::holds_alternative<int>(v1) || !std::holds_alternative<int>(v2)) {
+        throw std::runtime_error("Operator >= only aplicable to int.");
+    }
+
+    return std::get<int>(v1) >= std::get<int>(v2);
+}
+
+toString(GreaterOrEqualThanExpr){
+    return "";
+}
+
+genCode(GreaterOrEqualThanExpr){
+    Value v1 = expr1->eval(symb_tbl);
+    Value v2 = expr2->eval(symb_tbl);
+
+    stdstring code = "mov esi, " + std::to_string(std::get<int>(v1)) + "\n"
+                    + "cmp esi, " + std::to_string(std::get<int>(v2)) + "\n"
+                    + "jl ";
+
+    return {code, "", "greaterorequalthanexpr"};
+}

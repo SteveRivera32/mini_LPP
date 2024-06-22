@@ -3,7 +3,7 @@
 
 #include <iosfwd>
 #include <string>
-#include <variant>
+#include "ExprParserImpl.hpp"
 
 enum class Token: int {
     Eof = 0,
@@ -82,7 +82,8 @@ class ExprLexer
 {
 public:
     using yyscan_t = void*;
-    using ParserValueType = std::variant<std::string, double>;
+    //using ParserValueType = std::variant<std::string, double>;
+
 
 public:
     ExprLexer(std::istream& _in);
