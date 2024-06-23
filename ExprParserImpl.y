@@ -177,7 +177,7 @@ statement-list: statement-list statement EOL end_of_line { $$ = new BlockStmt($1
 
 statement: RES_ESCRIBA expr { $$ = new PrintStmt($2); }
       | factor-identifier ASIGNACION expr { $$ = new AssignStmt($1, $3); }
-      | RES_MIENTRAS comp-expr-list end_of_line RES_HAGA EOL statement-list end_of_line RES_FIN RES_MIENTRAS { $$ = new WhileStmt($2, $4);}
+      | RES_MIENTRAS comp-expr-list end_of_line RES_HAGA EOL statement-list end_of_line RES_FIN RES_MIENTRAS { $$ = new WhileStmt($2, $6); }
       | RES_PARA IDENTIFICADOR ASIGNACION expr RES_HASTA expr RES_HAGA EOL statement-list end_of_line RES_FIN RES_PARA {}
       | if-statement {}
       | RES_RETORNE expr {}
@@ -203,11 +203,11 @@ comp-expr: expr COMP_MENORQUE expr { $$ = new LessThanExpr($1, $3); }
 if-statement: RES_SI comp-expr-list end_of_line RES_ENTONCES end_of_line statement-list end_of_line else-block end_of_line RES_FIN RES_SI { $$ = new IfStmt($2, $4, $5); }
 ;
 
-else-block: | RES_SINO RES_SI comp-expr-list end_of_line RES_ENTONCES end_of_line statement-list end_of_line else-block { $$ = new IfStmt($3, $5, $6); }
-      | RES_SINO RES_SI comp-expr-list end_of_line RES_ENTONCES end_of_line statement-list { $$ = new IfStmt($3, $5, $6); }
-      | RES_SINO RES_SI comp-expr-list end_of_line RES_ENTONCES end_of_line statement-list-no-if end_of_line else-block { $$ = new IfStmt($3, $5, $6); }
-      | RES_SINO RES_SI comp-expr-list end_of_line RES_ENTONCES end_of_line statement-list-no-if { $$ = new IfStmt($3, $5, $6); }
-      | RES_SINO end_of_line statement-list-no-if end_of_line { $$ = $2; }
+else-block: | RES_SINO RES_SI comp-expr-list end_of_line RES_ENTONCES end_of_line statement-list end_of_line else-block { $$ = new IfStmt($3, $7, $9); }
+      | RES_SINO RES_SI comp-expr-list end_of_line RES_ENTONCES end_of_line statement-list {  }
+      | RES_SINO RES_SI comp-expr-list end_of_line RES_ENTONCES end_of_line statement-list-no-if end_of_line else-block { $$ = new IfStmt($3, $7, $9); }
+      | RES_SINO RES_SI comp-expr-list end_of_line RES_ENTONCES end_of_line statement-list-no-if {  }
+      | RES_SINO end_of_line statement-list-no-if end_of_line { $$ = $3; }
       //| RES_SINO statement-list {}
 ;
 
@@ -217,7 +217,7 @@ statement-list-no-if: statement-list-no-if statement-no-if EOL { $$ = new BlockS
 
 statement-no-if: RES_ESCRIBA expr { $$ = new PrintStmt($2); }
       | factor-identifier ASIGNACION expr { $$ = new AssignStmt($1, $3); }
-      | RES_MIENTRAS comp-expr-list end_of_line RES_HAGA EOL statement-list end_of_line RES_FIN RES_MIENTRAS { $$ = new WhileStmt($2, $4);}
+      | RES_MIENTRAS comp-expr-list end_of_line RES_HAGA EOL statement-list end_of_line RES_FIN RES_MIENTRAS { $$ = new WhileStmt($2, $6); }
       | RES_PARA IDENTIFICADOR ASIGNACION expr RES_HASTA expr RES_HAGA EOL statement-list end_of_line RES_FIN RES_PARA {}
       | RES_RETORNE expr {}
       | RES_LLAMAR IDENTIFICADOR OPEN_PAR factor-list CLOSE_PAR {}
