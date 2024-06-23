@@ -104,32 +104,38 @@ using ParserValueType = AstNode *;
 %token RES_VERDADERO "reserved word verdadero"
 %token RES_FALSO "reserved word falso"
 %token RES_HASTA "reserved word hasta"
+%token EOL "end of line"
 
 %%
 
 input: program {  }
 ;
 
-program: subtypes-section variable-section subprogram-decl RES_INICIO statement-list RES_FIN { parser.generateASM(new Program($5)); }
+program: subtypes-section variable-section end_of_line subprogram-decl end_of_line RES_INICIO EOL statement-list end_of_line RES_FIN end_of_line { parser.generateASM(new Program($8)); }
 ;
 
-subtypes-section: subtypes-section subtype-decl {}
-      | subtype-decl {}
+end_of_line: end_of_line EOL {  }
+      | EOL
       |
+;       
+
+subtypes-section: subtypes-section subtype-decl EOL {}
+      | subtype-decl EOL {}
+      | 
 ;
 
 subtype-decl: RES_TIPO IDENTIFICADOR RES_ES type {}
 ;
 
-subprogram-decl: subprogram-header variable-section RES_INICIO statement-list RES_FIN subprogram-decl {}
-      | subprogram-header variable-section RES_INICIO statement-list RES_FIN {}
+subprogram-decl: subprogram-header EOL variable-section RES_INICIO EOL statement-list end_of_line RES_FIN end_of_line subprogram-decl end_of_line {}
+      | subprogram-header EOL variable-section RES_INICIO EOL statement-list end_of_line RES_FIN end_of_line {}
       |
 ;
 
-subprogram-header: RES_FUNCION IDENTIFICADOR OPEN_PAR parameters CLOSE_PAR DOS_PUNTOS type
-      | RES_FUNCION IDENTIFICADOR DOS_PUNTOS type
-      | RES_PROCEDIMIENTO IDENTIFICADOR OPEN_PAR parameters CLOSE_PAR
-      | RES_PROCEDIMIENTO IDENTIFICADOR
+subprogram-header: RES_FUNCION IDENTIFICADOR OPEN_PAR parameters CLOSE_PAR DOS_PUNTOS type {}
+      | RES_FUNCION IDENTIFICADOR DOS_PUNTOS type {}
+      | RES_PROCEDIMIENTO IDENTIFICADOR OPEN_PAR parameters CLOSE_PAR {}
+      | RES_PROCEDIMIENTO IDENTIFICADOR {}
 ;
 
 parameters: parameters COMA type-variant IDENTIFICADOR {}
@@ -144,8 +150,8 @@ variable-section: variable-list {}
       |
 ;
 
-variable-list: variable-list variable-decl {}
-      | variable-decl {}
+variable-list: variable-list variable-decl EOL {}
+      | variable-decl EOL {}
 ;
 
 variable-decl: type type-list { }
@@ -165,14 +171,14 @@ type-list: IDENTIFICADOR {  }
       | type-list COMA IDENTIFICADOR {  }
 ;
 
-statement-list: statement-list statement { $$ = new BlockStmt($1, $2); }
-      | statement { $$ = $1; }
+statement-list: statement-list statement EOL end_of_line { $$ = new BlockStmt($1, $2); }
+      | statement EOL end_of_line { $$ = $1; }
 ;
 
 statement: RES_ESCRIBA expr { $$ = new PrintStmt($2); }
       | factor-identifier ASIGNACION expr { $$ = new AssignStmt($1, $3); }
-      | RES_MIENTRAS comp-expr-list RES_HAGA statement-list RES_FIN RES_MIENTRAS { $$ = new WhileStmt($2, $4);}
-      | RES_PARA IDENTIFICADOR ASIGNACION expr RES_HASTA expr RES_HAGA statement-list RES_FIN RES_PARA {}
+      | RES_MIENTRAS comp-expr-list end_of_line RES_HAGA EOL statement-list end_of_line RES_FIN RES_MIENTRAS { $$ = new WhileStmt($2, $4);}
+      | RES_PARA IDENTIFICADOR ASIGNACION expr RES_HASTA expr RES_HAGA EOL statement-list end_of_line RES_FIN RES_PARA {}
       | if-statement {}
       | RES_RETORNE expr {}
       | RES_LLAMAR IDENTIFICADOR OPEN_PAR factor-list CLOSE_PAR {}
@@ -194,23 +200,25 @@ comp-expr: expr COMP_MENORQUE expr { $$ = new LessThanExpr($1, $3); }
       | RES_NO comp-expr {  }
 ;
 
-if-statement: RES_SI comp-expr-list RES_ENTONCES statement-list else-block RES_FIN RES_SI { $$ = new IfStmt($2, $4, $5); }
+if-statement: RES_SI comp-expr-list end_of_line RES_ENTONCES end_of_line statement-list end_of_line else-block end_of_line RES_FIN RES_SI { $$ = new IfStmt($2, $4, $5); }
 ;
 
-else-block: | RES_SINO RES_SI comp-expr-list RES_ENTONCES statement-list else-block { $$ = new IfStmt($3, $5, $6); }
-      | RES_SINO RES_SI comp-expr-list RES_ENTONCES statement-list-no-if else-block { $$ = new IfStmt($3, $5, $6); }
-      | RES_SINO statement-list-no-if { $$ = $2; }
+else-block: | RES_SINO RES_SI comp-expr-list end_of_line RES_ENTONCES end_of_line statement-list end_of_line else-block { $$ = new IfStmt($3, $5, $6); }
+      | RES_SINO RES_SI comp-expr-list end_of_line RES_ENTONCES end_of_line statement-list { $$ = new IfStmt($3, $5, $6); }
+      | RES_SINO RES_SI comp-expr-list end_of_line RES_ENTONCES end_of_line statement-list-no-if end_of_line else-block { $$ = new IfStmt($3, $5, $6); }
+      | RES_SINO RES_SI comp-expr-list end_of_line RES_ENTONCES end_of_line statement-list-no-if { $$ = new IfStmt($3, $5, $6); }
+      | RES_SINO end_of_line statement-list-no-if end_of_line { $$ = $2; }
       //| RES_SINO statement-list {}
 ;
 
-statement-list-no-if: statement-list-no-if statement-no-if { $$ = new BlockStmt($1, $2); }
-      | statement-no-if { $$ = $1; }
+statement-list-no-if: statement-list-no-if statement-no-if EOL { $$ = new BlockStmt($1, $2); }
+      | statement-no-if EOL { $$ = $1; }
 ;
 
 statement-no-if: RES_ESCRIBA expr { $$ = new PrintStmt($2); }
       | factor-identifier ASIGNACION expr { $$ = new AssignStmt($1, $3); }
-      | RES_MIENTRAS comp-expr-list RES_HAGA statement-list RES_FIN RES_MIENTRAS {}
-      | RES_PARA IDENTIFICADOR ASIGNACION expr RES_HASTA expr RES_HAGA statement-list RES_FIN RES_PARA {}
+      | RES_MIENTRAS comp-expr-list end_of_line RES_HAGA EOL statement-list end_of_line RES_FIN RES_MIENTRAS { $$ = new WhileStmt($2, $4);}
+      | RES_PARA IDENTIFICADOR ASIGNACION expr RES_HASTA expr RES_HAGA EOL statement-list end_of_line RES_FIN RES_PARA {}
       | RES_RETORNE expr {}
       | RES_LLAMAR IDENTIFICADOR OPEN_PAR factor-list CLOSE_PAR {}
       | RES_LLAMAR IDENTIFICADOR {}

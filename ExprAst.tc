@@ -292,12 +292,18 @@ genCode(NumExpr){
 }
 
 eval(IdentExpr){
+    if(id == "Verdadero")
+        return 1;
+    else if(id == "Falso")
+        return 0;
+
     auto it = symb_tbl.find(id);
 
     if (it != symb_tbl.end()){
         return it->second;
     }else{
-        throw std::runtime_error("Variable '" + id + "' has not been declared.");
+        //throw std::runtime_error("Variable '" + id + "' has not been declared.");
+        return 0;
     }
 }
 

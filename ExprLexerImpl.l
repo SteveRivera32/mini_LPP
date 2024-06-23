@@ -23,7 +23,8 @@
 %x comment
 
 %%
-[ \t\n]	        { }
+[\n]            { return Token::EOL; }
+[ \t]	        { }
 "//"[^\n]*\n    { }
 "/*"    { BEGIN(comment); }
 "+"		{ return Token::OP_ADD; }

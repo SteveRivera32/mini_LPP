@@ -76,6 +76,7 @@ enum class Token: int {
     RES_VERDADERO = 320,
     RES_FALSO = 321,
     RES_HASTA = 322,
+    EOL = 323,
 };
 
 class ExprLexer
