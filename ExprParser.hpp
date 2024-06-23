@@ -17,20 +17,17 @@ public:
 
     int parse();
 
-    void generateASM(AstNode* value){
-        SymbolTable symb_tbl;
-        std::ofstream outFile("../asm.txt");
-
-        if (outFile.is_open()) {
-            outFile << value->genCode(symb_tbl).code;
-
-            // Cerrar el archivo
-            outFile.close();
-        } 
-    }
-    
     ExprLexer& getLexer() const {
         return lexer;
+    }
+
+    void generateASM(AstNode* value){
+        SymbolTable symb_tbl;
+        ASMCode = value->genCode(symb_tbl).code;
+    }
+
+    std::string getCode(){
+        return ASMCode;
     }
 
     /*
@@ -83,6 +80,7 @@ public:
 
 private:
     ExprLexer& lexer;
+    std::string ASMCode;
     //std::vector<AstNode*> values;
     //std::vector<std::string> tempVector;
     //std::unordered_map<std::string, std::string> identValues, declaratedIdentifiers;
